@@ -1,37 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Document } from './entities/document.entity';
 import { CreateDocumentDto } from './dto/create-document.dto';
-import { DiskStorageOptions } from '@nestjs/platform-express/multer/interfaces';
+import { UpdateDocumentDto } from './dto/update-document.dto';
+import { Document } from './document.entity';
 
 @Injectable()
 export class DocumentsService {
-  constructor(
-    @InjectRepository(Document)
-    private documentsRepository: Repository<Document>,
-  ) {}
+  private documents: Document[] = [];
 
-  async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File) {
-    const document = this.documentsRepository.create({
-      ...createDocumentDto,
-      filename: file.filename,
-      path: file.path,
-    });
-    await this.documentsRepository.save(document);
-    return document;
+  uploadDocument(createDocumentDto: CreateDocumentDto) {
+    const newDoc = { ...createDocumentDto, id: Date.now().toString() };
+    this.documents.push(newDoc);
+    return newDoc;
   }
 
-  async findOne(id: number) {
-    return this.documentsRepository.findOne({ where: { id } });
+  findAll() {
+    return this.documents;
   }
 
-  async remove(id: number) {
-    const document = await this.findOne(id);
+  findOne(id: string) {
+    return this.documents.find((doc) => doc.id === id);
+  }
+
+  update(id: string, updateDocumentDto: UpdateDocumentDto) {
+    const document = this.documents.find((doc) => doc.id === id);
     if (document) {
-      await this.documentsRepository.remove(document);
+      Object.assign(document, updateDocumentDto);
+      return document;
+    }
+    return null;
+  }
+
+  remove(id: string) {
+    const index = this.documents.findIndex((doc) => doc.id === id);
+    if (index !== -1) {
+      this.documents.splice(index, 1);
       return { message: 'Document deleted successfully' };
     }
-    throw new Error('Document not found');
+    return { message: 'Document not found' };
   }
 }
